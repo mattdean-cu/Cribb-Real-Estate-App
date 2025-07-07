@@ -302,7 +302,7 @@ def main():
             db.session.rollback()
             return {'error': f'Registration failed: {str(e)}'}, 500
 
-    @app.route('/api/auth/me', methods=['GET', 'OPTIONS'])
+    @app.route('/api/auth/current-user', methods=['GET', 'OPTIONS'])
     @login_required
     def get_current_user():
         """Get current user"""

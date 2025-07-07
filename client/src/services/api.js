@@ -6,6 +6,7 @@ class ApiService {
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     const config = {
+      credentials: 'include', // ← KEY FIX: Include cookies/session
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -31,6 +32,31 @@ class ApiService {
   // Health check
   async checkHealth() {
     return this.request('/health');
+  }
+
+  // Authentication endpoints
+  async login(email, password) {
+    return this.request('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async register(userData) {
+    return this.request('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async logout() {
+    return this.request('/api/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  async getCurrentUser() {
+    return this.request('/api/auth/current-user');
   }
 
   // User endpoints

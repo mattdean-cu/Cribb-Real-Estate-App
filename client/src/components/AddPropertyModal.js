@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import apiService from '../services/api';
+import './AddPropertyModal.css';
 
 const AddPropertyModal = ({ onClose, onPropertyAdded }) => {
   const [formData, setFormData] = useState({
@@ -45,6 +46,15 @@ const AddPropertyModal = ({ onClose, onPropertyAdded }) => {
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const steps = [
+    { title: 'Basic Info', icon: '🏠' },
+    { title: 'Financial', icon: '💰' },
+    { title: 'Details', icon: '📐' },
+    { title: 'Rental & Expenses', icon: '🏘️' },
+    { title: 'Growth', icon: '📈' }
+  ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -62,51 +72,58 @@ const AddPropertyModal = ({ onClose, onPropertyAdded }) => {
     }
   };
 
-  const validateForm = () => {
+  const validateStep = (step) => {
     const newErrors = {};
 
-    // Required fields
-    if (!formData.name.trim()) newErrors.name = 'Property name is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.state.trim()) newErrors.state = 'State is required';
-    if (!formData.zip_code.trim()) newErrors.zip_code = 'ZIP code is required';
-
-    // Financial validations
-    if (!formData.purchase_price || formData.purchase_price <= 0) {
-      newErrors.purchase_price = 'Purchase price must be greater than 0';
-    }
-    if (!formData.down_payment || formData.down_payment < 0) {
-      newErrors.down_payment = 'Down payment must be 0 or greater';
-    }
-    if (!formData.interest_rate || formData.interest_rate <= 0) {
-      newErrors.interest_rate = 'Interest rate must be greater than 0';
-    }
-
-    // Logical validations
-    if (formData.purchase_price && formData.down_payment &&
-        parseFloat(formData.down_payment) > parseFloat(formData.purchase_price)) {
-      newErrors.down_payment = 'Down payment cannot exceed purchase price';
+    switch (step) {
+      case 0: // Basic Info
+        if (!formData.name.trim()) newErrors.name = 'Property name is required';
+        if (!formData.address.trim()) newErrors.address = 'Address is required';
+        if (!formData.city.trim()) newErrors.city = 'City is required';
+        if (!formData.state.trim()) newErrors.state = 'State is required';
+        if (!formData.zip_code.trim()) newErrors.zip_code = 'ZIP code is required';
+        break;
+      case 1: // Financial
+        if (!formData.purchase_price || formData.purchase_price <= 0) {
+          newErrors.purchase_price = 'Purchase price must be greater than 0';
+        }
+        if (!formData.down_payment || formData.down_payment < 0) {
+          newErrors.down_payment = 'Down payment must be 0 or greater';
+        }
+        if (!formData.interest_rate || formData.interest_rate <= 0) {
+          newErrors.interest_rate = 'Interest rate must be greater than 0';
+        }
+        if (formData.purchase_price && formData.down_payment &&
+            parseFloat(formData.down_payment) > parseFloat(formData.purchase_price)) {
+          newErrors.down_payment = 'Down payment cannot exceed purchase price';
+        }
+        break;
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (!validateStep(currentStep)) {
       return;
     }
 
     setLoading(true);
 
     try {
-      // Get the demo user ID (we'll use the existing demo user)
-      const usersData = await apiService.getUsers();
-      const demoUser = usersData.users[0]; // Use first user (demo user)
-
       // Calculate loan amount
       const purchasePrice = parseFloat(formData.purchase_price);
       const downPayment = parseFloat(formData.down_payment);
@@ -125,7 +142,7 @@ const AddPropertyModal = ({ onClose, onPropertyAdded }) => {
         purchase_price: purchasePrice,
         down_payment: downPayment,
         loan_amount: loanAmount,
-        interest_rate: parseFloat(formData.interest_rate) / 100, // Convert percentage to decimal
+        interest_rate: parseFloat(formData.interest_rate) / 100,
         loan_term_years: parseInt(formData.loan_term_years),
         closing_costs: parseFloat(formData.closing_costs) || 0,
 
@@ -153,8 +170,6 @@ const AddPropertyModal = ({ onClose, onPropertyAdded }) => {
         annual_rent_increase: parseFloat(formData.annual_rent_increase) / 100,
         annual_expense_increase: parseFloat(formData.annual_expense_increase) / 100,
         property_appreciation: parseFloat(formData.property_appreciation) / 100,
-
-        owner_id: demoUser.id
       };
 
       await apiService.createProperty(propertyData);
@@ -169,246 +184,156 @@ const AddPropertyModal = ({ onClose, onPropertyAdded }) => {
     }
   };
 
-  const modalStyle = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 50,
-    padding: '16px'
-  };
-
-  const contentStyle = {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    maxWidth: '800px',
-    width: '100%',
-    maxHeight: '90vh',
-    overflow: 'hidden',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-  };
-
-  const headerStyle = {
-    padding: '24px',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  };
-
-  const formStyle = {
-    padding: '24px',
-    maxHeight: 'calc(90vh - 160px)',
-    overflowY: 'auto'
-  };
-
-  const gridStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px',
-    marginBottom: '24px'
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: '8px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '4px',
-    fontSize: '14px'
-  };
-
-  const errorInputStyle = {
-    ...inputStyle,
-    borderColor: '#ef4444'
-  };
-
-  const labelStyle = {
-    display: 'block',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: '4px'
-  };
-
-  const sectionStyle = {
-    marginBottom: '32px'
-  };
-
-  const sectionHeaderStyle = {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: '16px',
-    paddingBottom: '8px',
-    borderBottom: '2px solid #e5e7eb'
-  };
-
-  return (
-    <div style={modalStyle} onClick={onClose}>
-      <div style={contentStyle} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-            Add New Property
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#6b7280'
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} style={formStyle}>
-          {/* Basic Information */}
-          <div style={sectionStyle}>
-            <h3 style={sectionHeaderStyle}>Basic Information</h3>
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>Property Name *</label>
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Basic Information
+        return (
+          <div className="step-content">
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Property Name *</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  style={errors.name ? errorInputStyle : inputStyle}
+                  className={`form-input ${errors.name ? 'error' : ''}`}
                   placeholder="e.g., Main Street Rental"
                 />
-                {errors.name && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.name}</p>}
+                {errors.name && <span className="error-text">{errors.name}</span>}
               </div>
-              <div>
-                <label style={labelStyle}>Property Type</label>
+              <div className="form-group">
+                <label className="form-label">Property Type</label>
                 <select
                   name="property_type"
                   value={formData.property_type}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  className="form-input"
                 >
-                  <option value="single_family">Single Family</option>
-                  <option value="multi_family">Multi Family</option>
-                  <option value="condo">Condo</option>
-                  <option value="townhouse">Townhouse</option>
-                  <option value="commercial">Commercial</option>
-                  <option value="land">Land</option>
+                  <option value="single_family">🏠 Single Family</option>
+                  <option value="multi_family">🏘️ Multi Family</option>
+                  <option value="condo">🏢 Condo</option>
+                  <option value="townhouse">🏡 Townhouse</option>
+                  <option value="commercial">🏬 Commercial</option>
+                  <option value="land">🌱 Land</option>
                 </select>
               </div>
             </div>
 
-            <div style={gridStyle}>
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Address *</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  style={errors.address ? errorInputStyle : inputStyle}
-                  placeholder="123 Main Street"
-                />
-                {errors.address && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.address}</p>}
-              </div>
+            <div className="form-group">
+              <label className="form-label">Address *</label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                className={`form-input ${errors.address ? 'error' : ''}`}
+                placeholder="123 Main Street"
+              />
+              {errors.address && <span className="error-text">{errors.address}</span>}
             </div>
 
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>City *</label>
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">City *</label>
                 <input
                   type="text"
                   name="city"
                   value={formData.city}
                   onChange={handleInputChange}
-                  style={errors.city ? errorInputStyle : inputStyle}
+                  className={`form-input ${errors.city ? 'error' : ''}`}
                   placeholder="New York"
                 />
-                {errors.city && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.city}</p>}
+                {errors.city && <span className="error-text">{errors.city}</span>}
               </div>
-              <div>
-                <label style={labelStyle}>State *</label>
+              <div className="form-group">
+                <label className="form-label">State *</label>
                 <input
                   type="text"
                   name="state"
                   value={formData.state}
                   onChange={handleInputChange}
-                  style={errors.state ? errorInputStyle : inputStyle}
+                  className={`form-input ${errors.state ? 'error' : ''}`}
                   placeholder="NY"
                 />
-                {errors.state && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.state}</p>}
+                {errors.state && <span className="error-text">{errors.state}</span>}
               </div>
-              <div>
-                <label style={labelStyle}>ZIP Code *</label>
+              <div className="form-group">
+                <label className="form-label">ZIP Code *</label>
                 <input
                   type="text"
                   name="zip_code"
                   value={formData.zip_code}
                   onChange={handleInputChange}
-                  style={errors.zip_code ? errorInputStyle : inputStyle}
+                  className={`form-input ${errors.zip_code ? 'error' : ''}`}
                   placeholder="10001"
                 />
-                {errors.zip_code && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.zip_code}</p>}
+                {errors.zip_code && <span className="error-text">{errors.zip_code}</span>}
               </div>
             </div>
           </div>
+        );
 
-          {/* Financial Details */}
-          <div style={sectionStyle}>
-            <h3 style={sectionHeaderStyle}>Financial Details</h3>
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>Purchase Price * ($)</label>
-                <input
-                  type="number"
-                  name="purchase_price"
-                  value={formData.purchase_price}
-                  onChange={handleInputChange}
-                  style={errors.purchase_price ? errorInputStyle : inputStyle}
-                  placeholder="400000"
-                />
-                {errors.purchase_price && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.purchase_price}</p>}
+      case 1: // Financial Details
+        return (
+          <div className="step-content">
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Purchase Price * 💰</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="purchase_price"
+                    value={formData.purchase_price}
+                    onChange={handleInputChange}
+                    className={`form-input with-icon ${errors.purchase_price ? 'error' : ''}`}
+                    placeholder="400,000"
+                  />
+                </div>
+                {errors.purchase_price && <span className="error-text">{errors.purchase_price}</span>}
               </div>
-              <div>
-                <label style={labelStyle}>Down Payment * ($)</label>
-                <input
-                  type="number"
-                  name="down_payment"
-                  value={formData.down_payment}
-                  onChange={handleInputChange}
-                  style={errors.down_payment ? errorInputStyle : inputStyle}
-                  placeholder="80000"
-                />
-                {errors.down_payment && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.down_payment}</p>}
+              <div className="form-group">
+                <label className="form-label">Down Payment * 💳</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="down_payment"
+                    value={formData.down_payment}
+                    onChange={handleInputChange}
+                    className={`form-input with-icon ${errors.down_payment ? 'error' : ''}`}
+                    placeholder="80,000"
+                  />
+                </div>
+                {errors.down_payment && <span className="error-text">{errors.down_payment}</span>}
               </div>
-              <div>
-                <label style={labelStyle}>Interest Rate * (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="interest_rate"
-                  value={formData.interest_rate}
-                  onChange={handleInputChange}
-                  style={errors.interest_rate ? errorInputStyle : inputStyle}
-                  placeholder="4.5"
-                />
-                {errors.interest_rate && <p style={{ color: '#ef4444', fontSize: '12px', margin: '4px 0 0 0' }}>{errors.interest_rate}</p>}
+            </div>
+
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Interest Rate * 📊</label>
+                <div className="input-with-icon">
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="interest_rate"
+                    value={formData.interest_rate}
+                    onChange={handleInputChange}
+                    className={`form-input with-icon ${errors.interest_rate ? 'error' : ''}`}
+                    placeholder="4.5"
+                  />
+                  <span className="input-icon-right">%</span>
+                </div>
+                {errors.interest_rate && <span className="error-text">{errors.interest_rate}</span>}
               </div>
-              <div>
-                <label style={labelStyle}>Loan Term (years)</label>
+              <div className="form-group">
+                <label className="form-label">Loan Term 📅</label>
                 <select
                   name="loan_term_years"
                   value={formData.loan_term_years}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  className="form-input"
                 >
                   <option value="15">15 years</option>
                   <option value="30">30 years</option>
@@ -416,278 +341,368 @@ const AddPropertyModal = ({ onClose, onPropertyAdded }) => {
               </div>
             </div>
 
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>Closing Costs ($)</label>
+            <div className="form-group">
+              <label className="form-label">Closing Costs 📋</label>
+              <div className="input-with-icon">
+                <span className="input-icon">$</span>
                 <input
                   type="number"
                   name="closing_costs"
                   value={formData.closing_costs}
                   onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="8000"
+                  className="form-input with-icon"
+                  placeholder="8,000"
                 />
               </div>
             </div>
-          </div>
 
-          {/* Property Details */}
-          <div style={sectionStyle}>
-            <h3 style={sectionHeaderStyle}>Property Details</h3>
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>Bedrooms</label>
+            {formData.purchase_price && formData.down_payment && (
+              <div className="calculation-preview">
+                <h4>💡 Loan Calculation</h4>
+                <p>Loan Amount: <strong>${(parseFloat(formData.purchase_price || 0) - parseFloat(formData.down_payment || 0)).toLocaleString()}</strong></p>
+                <p>Down Payment: <strong>{((parseFloat(formData.down_payment || 0) / parseFloat(formData.purchase_price || 1)) * 100).toFixed(1)}%</strong></p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 2: // Property Details
+        return (
+          <div className="step-content">
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Bedrooms 🛏️</label>
                 <input
                   type="number"
                   name="bedrooms"
                   value={formData.bedrooms}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  className="form-input"
                   placeholder="3"
                 />
               </div>
-              <div>
-                <label style={labelStyle}>Bathrooms</label>
+              <div className="form-group">
+                <label className="form-label">Bathrooms 🚿</label>
                 <input
                   type="number"
                   step="0.5"
                   name="bathrooms"
                   value={formData.bathrooms}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  className="form-input"
                   placeholder="2.5"
                 />
               </div>
-              <div>
-                <label style={labelStyle}>Square Feet</label>
-                <input
-                  type="number"
-                  name="square_feet"
-                  value={formData.square_feet}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="1800"
-                />
+            </div>
+
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Square Feet 📐</label>
+                <div className="input-with-icon">
+                  <input
+                    type="number"
+                    name="square_feet"
+                    value={formData.square_feet}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="1,800"
+                  />
+                  <span className="input-icon-right">ft²</span>
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>Year Built</label>
+              <div className="form-group">
+                <label className="form-label">Year Built 🏗️</label>
                 <input
                   type="number"
                   name="year_built"
                   value={formData.year_built}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  className="form-input"
                   placeholder="2010"
                 />
               </div>
             </div>
           </div>
+        );
 
-          {/* Rental Information */}
-          <div style={sectionStyle}>
-            <h3 style={sectionHeaderStyle}>Rental Information</h3>
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>Monthly Rent ($)</label>
-                <input
-                  type="number"
-                  name="monthly_rent"
-                  value={formData.monthly_rent}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="3200"
-                />
+      case 3: // Rental & Expenses
+        return (
+          <div className="step-content">
+            <div className="section-header">
+              <h4>💰 Rental Information</h4>
+            </div>
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Monthly Rent 🏠</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="monthly_rent"
+                    value={formData.monthly_rent}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="3,200"
+                  />
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>Security Deposit ($)</label>
-                <input
-                  type="number"
-                  name="security_deposit"
-                  value={formData.security_deposit}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="3200"
-                />
+              <div className="form-group">
+                <label className="form-label">Security Deposit 🛡️</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="security_deposit"
+                    value={formData.security_deposit}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="3,200"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="section-header">
+              <h4>📊 Monthly Operating Expenses</h4>
+            </div>
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Property Taxes 🏛️</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="property_taxes"
+                    value={formData.property_taxes}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="500"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Insurance 🛡️</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="insurance"
+                    value={formData.insurance}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="150"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Property Management 👔</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="property_management"
+                    value={formData.property_management}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="256"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Maintenance Reserve 🔧</label>
+                <div className="input-with-icon">
+                  <span className="input-icon">$</span>
+                  <input
+                    type="number"
+                    name="maintenance_reserve"
+                    value={formData.maintenance_reserve}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="160"
+                  />
+                </div>
               </div>
             </div>
           </div>
+        );
 
-          {/* Operating Expenses */}
-          <div style={sectionStyle}>
-            <h3 style={sectionHeaderStyle}>Monthly Operating Expenses</h3>
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>Property Taxes ($)</label>
-                <input
-                  type="number"
-                  name="property_taxes"
-                  value={formData.property_taxes}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="500"
-                />
+      case 4: // Growth Assumptions
+        return (
+          <div className="step-content">
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Vacancy Rate 🏚️</label>
+                <div className="input-with-icon">
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="vacancy_rate"
+                    value={formData.vacancy_rate}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="5"
+                  />
+                  <span className="input-icon-right">%</span>
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>Insurance ($)</label>
-                <input
-                  type="number"
-                  name="insurance"
-                  value={formData.insurance}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="150"
-                />
+              <div className="form-group">
+                <label className="form-label">Annual Rent Increase 📈</label>
+                <div className="input-with-icon">
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="annual_rent_increase"
+                    value={formData.annual_rent_increase}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="3"
+                  />
+                  <span className="input-icon-right">%</span>
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>HOA Fees ($)</label>
-                <input
-                  type="number"
-                  name="hoa_fees"
-                  value={formData.hoa_fees}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="0"
-                />
+            </div>
+
+            <div className="form-group-row">
+              <div className="form-group">
+                <label className="form-label">Annual Expense Increase 📊</label>
+                <div className="input-with-icon">
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="annual_expense_increase"
+                    value={formData.annual_expense_increase}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="2.5"
+                  />
+                  <span className="input-icon-right">%</span>
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>Property Management ($)</label>
-                <input
-                  type="number"
-                  name="property_management"
-                  value={formData.property_management}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="256"
-                />
+              <div className="form-group">
+                <label className="form-label">Property Appreciation 🏡</label>
+                <div className="input-with-icon">
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="property_appreciation"
+                    value={formData.property_appreciation}
+                    onChange={handleInputChange}
+                    className="form-input with-icon"
+                    placeholder="4"
+                  />
+                  <span className="input-icon-right">%</span>
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>Maintenance Reserve ($)</label>
-                <input
-                  type="number"
-                  name="maintenance_reserve"
-                  value={formData.maintenance_reserve}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="160"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Utilities ($)</label>
-                <input
-                  type="number"
-                  name="utilities"
-                  value={formData.utilities}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Other Expenses ($)</label>
-                <input
-                  type="number"
-                  name="other_expenses"
-                  value={formData.other_expenses}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="50"
-                />
+            </div>
+
+            <div className="growth-preview">
+              <h4>📋 Summary of Assumptions</h4>
+              <div className="preview-grid">
+                <div className="preview-item">
+                  <span>Vacancy Rate:</span>
+                  <strong>{formData.vacancy_rate}%</strong>
+                </div>
+                <div className="preview-item">
+                  <span>Rent Growth:</span>
+                  <strong>{formData.annual_rent_increase}% annually</strong>
+                </div>
+                <div className="preview-item">
+                  <span>Expense Growth:</span>
+                  <strong>{formData.annual_expense_increase}% annually</strong>
+                </div>
+                <div className="preview-item">
+                  <span>Appreciation:</span>
+                  <strong>{formData.property_appreciation}% annually</strong>
+                </div>
               </div>
             </div>
           </div>
+        );
 
-          {/* Growth Assumptions */}
-          <div style={sectionStyle}>
-            <h3 style={sectionHeaderStyle}>Growth Assumptions</h3>
-            <div style={gridStyle}>
-              <div>
-                <label style={labelStyle}>Vacancy Rate (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="vacancy_rate"
-                  value={formData.vacancy_rate}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="5"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Annual Rent Increase (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="annual_rent_increase"
-                  value={formData.annual_rent_increase}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="3"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Annual Expense Increase (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="annual_expense_increase"
-                  value={formData.annual_expense_increase}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="2.5"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Property Appreciation (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="property_appreciation"
-                  value={formData.property_appreciation}
-                  onChange={handleInputChange}
-                  style={inputStyle}
-                  placeholder="4"
-                />
-              </div>
-            </div>
-          </div>
+      default:
+        return null;
+    }
+  };
 
-          {/* Submit Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '8px 16px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-                color: '#374151',
-                cursor: 'pointer'
-              }}
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="modal-header">
+          <h2>✨ Add New Property</h2>
+          <button onClick={onClose} className="close-button">×</button>
+        </div>
+
+        {/* Progress Stepper */}
+        <div className="stepper">
+          {steps.map((step, index) => (
+            <div 
+              key={index} 
+              className={`step ${index === currentStep ? 'active' : ''} ${index < currentStep ? 'completed' : ''}`}
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: '8px 24px',
-                border: 'none',
-                borderRadius: '4px',
-                backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-                color: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              {loading ? 'Adding Property...' : 'Add Property'}
-            </button>
+              <div className="step-icon">
+                {index < currentStep ? '✓' : step.icon}
+              </div>
+              <span className="step-title">{step.title}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Form Content */}
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-content">
+            <h3 className="step-header">
+              {steps[currentStep].icon} {steps[currentStep].title}
+            </h3>
+            {renderStepContent()}
+          </div>
+
+          {/* Navigation */}
+          <div className="modal-footer">
+            <div className="button-group">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              {currentStep > 0 && (
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  className="btn btn-outline"
+                >
+                  Previous
+                </button>
+              )}
+              {currentStep < steps.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="btn btn-primary"
+                >
+                  Next Step
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-success"
+                >
+                  {loading ? 'Adding Property...' : '🎉 Add Property'}
+                </button>
+              )}
+            </div>
           </div>
 
           {errors.submit && (
-            <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px', textAlign: 'center' }}>
+            <div className="error-banner">
               {errors.submit}
-            </p>
+            </div>
           )}
         </form>
       </div>

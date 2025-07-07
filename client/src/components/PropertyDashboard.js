@@ -6,7 +6,7 @@ import AddPropertyModal from './AddPropertyModal';
 import EditPropertyModal from './EditPropertyModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
-const PropertyDashboard = () => {
+const PropertyDashboard = ({ user, onLogout }) => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,6 +15,7 @@ const PropertyDashboard = () => {
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false);
   const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Load properties on component mount
   useEffect(() => {
@@ -32,6 +33,17 @@ const PropertyDashboard = () => {
       console.error('Failed to load properties:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await onLogout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -88,6 +100,26 @@ const PropertyDashboard = () => {
     loadProperties();
   };
 
+  // Get user initials
+  const getUserInitials = () => {
+    if (user?.initials) return user.initials;
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+    }
+    if (user?.first_name) return user.first_name[0].toUpperCase();
+    return 'U';
+  };
+
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (user?.full_name) return user.full_name;
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    }
+    if (user?.first_name) return user.first_name;
+    return 'User';
+  };
+
   const containerStyle = {
     minHeight: '100vh',
     backgroundColor: '#f3f4f6'
@@ -109,6 +141,43 @@ const PropertyDashboard = () => {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '24px 0'
+  };
+
+  const userMenuStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  };
+
+  const userInfoStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  };
+
+  const userInitialsStyle = {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '600',
+    fontSize: '16px'
+  };
+
+  const userNameStyle = {
+    fontWeight: '500',
+    color: '#2d3748',
+    fontSize: '16px'
+  };
+
+  const actionButtonsStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
   };
 
   const mainContentStyle = {
@@ -133,10 +202,18 @@ const PropertyDashboard = () => {
   const buttonStyle = {
     padding: '8px 16px',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: '6px',
     fontWeight: '500',
     cursor: 'pointer',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    fontSize: '14px'
+  };
+
+  const logoutButtonStyle = {
+    ...buttonStyle,
+    background: '#e2e8f0',
+    border: '1px solid #cbd5e0',
+    color: '#4a5568'
   };
 
   if (loading) {
@@ -226,27 +303,63 @@ const PropertyDashboard = () => {
                 Analyze and manage your real estate investments
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button
-                onClick={loadProperties}
-                style={{
-                  ...buttonStyle,
-                  backgroundColor: '#6b7280',
-                  color: 'white'
-                }}
-              >
-                Refresh
-              </button>
-              <button
-                style={{
-                  ...buttonStyle,
-                  backgroundColor: '#3b82f6',
-                  color: 'white'
-                }}
-                onClick={handleAddProperty}
-              >
-                Add Property
-              </button>
+
+            {/* User Menu with Logout */}
+            <div style={userMenuStyle}>
+              <div style={userInfoStyle}>
+                <div style={userInitialsStyle}>
+                  {getUserInitials()}
+                </div>
+                <span style={userNameStyle}>
+                  {getUserDisplayName()}
+                </span>
+              </div>
+
+              <div style={actionButtonsStyle}>
+                <button
+                  onClick={loadProperties}
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: '#6b7280',
+                    color: 'white'
+                  }}
+                >
+                  Refresh
+                </button>
+                <button
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: '#3b82f6',
+                    color: 'white'
+                  }}
+                  onClick={handleAddProperty}
+                >
+                  Add Property
+                </button>
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  style={{
+                    ...logoutButtonStyle,
+                    opacity: isLoggingOut ? 0.6 : 1,
+                    cursor: isLoggingOut ? 'not-allowed' : 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoggingOut) {
+                      e.target.style.background = '#cbd5e0';
+                      e.target.style.color = '#2d3748';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoggingOut) {
+                      e.target.style.background = '#e2e8f0';
+                      e.target.style.color = '#4a5568';
+                    }
+                  }}
+                >
+                  {isLoggingOut ? 'Signing out...' : 'Sign Out'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
