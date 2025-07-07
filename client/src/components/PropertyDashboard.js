@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiService from '../services/api';
 import PropertyCard from './PropertyCard';
 import SimulationModal from './SimulationModal';
+import AddPropertyModal from './AddPropertyModal';
 
 const PropertyDashboard = () => {
   const [properties, setProperties] = useState([]);
@@ -9,6 +10,7 @@ const PropertyDashboard = () => {
   const [error, setError] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showSimulationModal, setShowSimulationModal] = useState(false);
+  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
 
   // Load properties on component mount
   useEffect(() => {
@@ -37,6 +39,19 @@ const PropertyDashboard = () => {
   const handleCloseModal = () => {
     setShowSimulationModal(false);
     setSelectedProperty(null);
+  };
+
+  const handleAddProperty = () => {
+    setShowAddPropertyModal(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddPropertyModal(false);
+  };
+
+  const handlePropertyAdded = () => {
+    // Refresh the properties list
+    loadProperties();
   };
 
   const containerStyle = {
@@ -194,6 +209,7 @@ const PropertyDashboard = () => {
                   backgroundColor: '#3b82f6',
                   color: 'white'
                 }}
+                onClick={handleAddProperty}
               >
                 Add Property
               </button>
@@ -294,6 +310,14 @@ const PropertyDashboard = () => {
         <SimulationModal
           property={selectedProperty}
           onClose={handleCloseModal}
+        />
+      )}
+
+      {/* Add Property Modal */}
+      {showAddPropertyModal && (
+        <AddPropertyModal
+          onClose={handleCloseAddModal}
+          onPropertyAdded={handlePropertyAdded}
         />
       )}
     </div>
