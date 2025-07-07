@@ -163,6 +163,228 @@ def main():
         except Exception as e:
             return {'error': str(e)}, 500
 
+    # CREATE Property POST endpoint
+    @app.route('/api/properties', methods=['POST'])
+    def create_property():
+        """Create new property"""
+        from flask import request
+        from models import Property, User
+        from models.property import PropertyType
+        from decimal import Decimal
+
+        try:
+            data = request.get_json()
+
+            if not data:
+                return {'error': 'No data provided'}, 400
+
+            # Validate required fields
+            required_fields = ['name', 'address', 'city', 'state', 'zip_code',
+                               'property_type', 'purchase_price', 'down_payment',
+                               'loan_amount', 'interest_rate', 'owner_id']
+
+            for field in required_fields:
+                if field not in data:
+                    return {'error': f'Missing required field: {field}'}, 400
+
+            # Verify owner exists
+            owner = User.query.get(data['owner_id'])
+            if not owner:
+                return {'error': 'Owner not found'}, 404
+
+            # Convert property_type string to enum
+            try:
+                property_type_enum = PropertyType(data['property_type'])
+            except ValueError:
+                return {'error': f'Invalid property type: {data["property_type"]}'}, 400
+
+            # Create property
+            property_obj = Property(
+                name=data['name'],
+                address=data['address'],
+                city=data['city'],
+                state=data['state'],
+                zip_code=data['zip_code'],
+                property_type=property_type_enum,
+
+                # Financial Details
+                purchase_price=Decimal(str(data['purchase_price'])),
+                down_payment=Decimal(str(data['down_payment'])),
+                loan_amount=Decimal(str(data['loan_amount'])),
+                interest_rate=Decimal(str(data['interest_rate'])),
+                loan_term_years=data.get('loan_term_years', 30),
+                closing_costs=Decimal(str(data.get('closing_costs', 0))),
+
+                # Property Details
+                bedrooms=data.get('bedrooms'),
+                bathrooms=Decimal(str(data['bathrooms'])) if data.get('bathrooms') else None,
+                square_feet=data.get('square_feet'),
+                year_built=data.get('year_built'),
+
+                # Rental Information
+                monthly_rent=Decimal(str(data['monthly_rent'])) if data.get('monthly_rent') else None,
+                security_deposit=Decimal(str(data['security_deposit'])) if data.get('security_deposit') else None,
+
+                # Operating Expenses
+                property_taxes=Decimal(str(data.get('property_taxes', 0))),
+                insurance=Decimal(str(data.get('insurance', 0))),
+                hoa_fees=Decimal(str(data.get('hoa_fees', 0))),
+                property_management=Decimal(str(data.get('property_management', 0))),
+                maintenance_reserve=Decimal(str(data.get('maintenance_reserve', 0))),
+                utilities=Decimal(str(data.get('utilities', 0))),
+                other_expenses=Decimal(str(data.get('other_expenses', 0))),
+
+                # Growth Assumptions
+                vacancy_rate=Decimal(str(data.get('vacancy_rate', 0.05))),
+                annual_rent_increase=Decimal(str(data.get('annual_rent_increase', 0.03))),
+                annual_expense_increase=Decimal(str(data.get('annual_expense_increase', 0.02))),
+                property_appreciation=Decimal(str(data.get('property_appreciation', 0.03))),
+
+                owner_id=data['owner_id']
+            )
+
+            db.session.add(property_obj)
+            db.session.commit()
+
+            print(f"✅ Created new property: {property_obj.name}")
+            return property_obj.to_dict(), 201
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error creating property: {e}")  # For debugging
+            return {'error': str(e)}, 500
+
+    # UPDATE Property PUT endpoint
+    @app.route('/api/properties/<property_id>', methods=['PUT'])
+    def update_property(property_id):
+        """Update existing property"""
+        from flask import request
+        from models import Property, User
+        from models.property import PropertyType
+        from decimal import Decimal
+
+        try:
+            # Get the property
+            property_obj = Property.query.get(property_id)
+            if not property_obj:
+                return {'error': 'Property not found'}, 404
+
+            data = request.get_json()
+            if not data:
+                return {'error': 'No data provided'}, 400
+
+            # Convert property_type string to enum if provided
+            if 'property_type' in data:
+                try:
+                    property_type_enum = PropertyType(data['property_type'])
+                    property_obj.property_type = property_type_enum
+                except ValueError:
+                    return {'error': f'Invalid property type: {data["property_type"]}'}, 400
+
+            # Update basic information
+            if 'name' in data:
+                property_obj.name = data['name']
+            if 'address' in data:
+                property_obj.address = data['address']
+            if 'city' in data:
+                property_obj.city = data['city']
+            if 'state' in data:
+                property_obj.state = data['state']
+            if 'zip_code' in data:
+                property_obj.zip_code = data['zip_code']
+
+            # Update financial details
+            if 'purchase_price' in data:
+                property_obj.purchase_price = Decimal(str(data['purchase_price']))
+            if 'down_payment' in data:
+                property_obj.down_payment = Decimal(str(data['down_payment']))
+            if 'loan_amount' in data:
+                property_obj.loan_amount = Decimal(str(data['loan_amount']))
+            if 'interest_rate' in data:
+                property_obj.interest_rate = Decimal(str(data['interest_rate']))
+            if 'loan_term_years' in data:
+                property_obj.loan_term_years = data['loan_term_years']
+            if 'closing_costs' in data:
+                property_obj.closing_costs = Decimal(str(data.get('closing_costs', 0)))
+
+            # Update property details
+            if 'bedrooms' in data:
+                property_obj.bedrooms = data['bedrooms']
+            if 'bathrooms' in data:
+                property_obj.bathrooms = Decimal(str(data['bathrooms'])) if data['bathrooms'] else None
+            if 'square_feet' in data:
+                property_obj.square_feet = data['square_feet']
+            if 'year_built' in data:
+                property_obj.year_built = data['year_built']
+
+            # Update rental information
+            if 'monthly_rent' in data:
+                property_obj.monthly_rent = Decimal(str(data['monthly_rent'])) if data['monthly_rent'] else None
+            if 'security_deposit' in data:
+                property_obj.security_deposit = Decimal(str(data['security_deposit'])) if data['security_deposit'] else None
+
+            # Update operating expenses
+            if 'property_taxes' in data:
+                property_obj.property_taxes = Decimal(str(data.get('property_taxes', 0)))
+            if 'insurance' in data:
+                property_obj.insurance = Decimal(str(data.get('insurance', 0)))
+            if 'hoa_fees' in data:
+                property_obj.hoa_fees = Decimal(str(data.get('hoa_fees', 0)))
+            if 'property_management' in data:
+                property_obj.property_management = Decimal(str(data.get('property_management', 0)))
+            if 'maintenance_reserve' in data:
+                property_obj.maintenance_reserve = Decimal(str(data.get('maintenance_reserve', 0)))
+            if 'utilities' in data:
+                property_obj.utilities = Decimal(str(data.get('utilities', 0)))
+            if 'other_expenses' in data:
+                property_obj.other_expenses = Decimal(str(data.get('other_expenses', 0)))
+
+            # Update growth assumptions
+            if 'vacancy_rate' in data:
+                property_obj.vacancy_rate = Decimal(str(data.get('vacancy_rate', 0.05)))
+            if 'annual_rent_increase' in data:
+                property_obj.annual_rent_increase = Decimal(str(data.get('annual_rent_increase', 0.03)))
+            if 'annual_expense_increase' in data:
+                property_obj.annual_expense_increase = Decimal(str(data.get('annual_expense_increase', 0.02)))
+            if 'property_appreciation' in data:
+                property_obj.property_appreciation = Decimal(str(data.get('property_appreciation', 0.03)))
+
+            db.session.commit()
+
+            print(f"✅ Updated property: {property_obj.name}")
+            return property_obj.to_dict(), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error updating property: {e}")
+            return {'error': str(e)}, 500
+
+    # DELETE Property endpoint
+    @app.route('/api/properties/<property_id>', methods=['DELETE'])
+    def delete_property(property_id):
+        """Delete property"""
+        from models import Property
+
+        try:
+            # Get the property
+            property_obj = Property.query.get(property_id)
+            if not property_obj:
+                return {'error': 'Property not found'}, 404
+
+            property_name = property_obj.name
+
+            # Delete the property (cascading will handle simulations)
+            db.session.delete(property_obj)
+            db.session.commit()
+
+            print(f"✅ Deleted property: {property_name}")
+            return {'message': f'Property "{property_name}" deleted successfully'}, 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error deleting property: {e}")
+            return {'error': str(e)}, 500
+
     @app.route('/api/properties/<property_id>/simulate', methods=['POST'])
     def simulate_property(property_id):
         try:
@@ -193,7 +415,8 @@ def main():
     print("   http://localhost:5000/")
     print("   http://localhost:5000/health")
     print("   http://localhost:5000/api/users")
-    print("   http://localhost:5000/api/properties")
+    print("   http://localhost:5000/api/properties (GET/POST/PUT/DELETE)")
+    print("   http://localhost:5000/api/properties/<id>/simulate")
     print("=" * 50)
 
     # Run the application

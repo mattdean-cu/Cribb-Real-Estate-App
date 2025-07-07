@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PropertyCard = ({ property, onRunSimulation }) => {
+const PropertyCard = ({ property, onRunSimulation, onEditProperty, onDeleteProperty }) => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -195,7 +195,7 @@ const PropertyCard = ({ property, onRunSimulation }) => {
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={() => onRunSimulation(property)}
             style={primaryButtonStyle}
@@ -205,11 +205,32 @@ const PropertyCard = ({ property, onRunSimulation }) => {
             Run Simulation
           </button>
           <button
-            style={secondaryButtonStyle}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#d1d5db'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+            onClick={() => onEditProperty(property)}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#10b981',
+              color: 'white',
+              flex: '0 0 auto',
+              padding: '8px 12px'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
           >
-            View Details
+            Edit
+          </button>
+          <button
+            onClick={() => onDeleteProperty(property)}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#dc2626',
+              color: 'white',
+              flex: '0 0 auto',
+              padding: '8px 12px'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+          >
+            Delete
           </button>
         </div>
       </div>

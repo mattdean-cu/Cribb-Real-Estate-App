@@ -65,6 +65,19 @@ class ApiService {
     });
   }
 
+  async updateProperty(propertyId, propertyData) {
+    return this.request(`/api/properties/${propertyId}`, {
+      method: 'PUT',
+      body: JSON.stringify(propertyData),
+    });
+  }
+
+  async deleteProperty(propertyId) {
+    return this.request(`/api/properties/${propertyId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Simulation endpoints
   async runSimulation(propertyId, simulationParams = {}) {
     const { years = 10, strategy = 'hold' } = simulationParams;

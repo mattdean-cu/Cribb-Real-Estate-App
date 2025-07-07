@@ -3,6 +3,8 @@ import apiService from '../services/api';
 import PropertyCard from './PropertyCard';
 import SimulationModal from './SimulationModal';
 import AddPropertyModal from './AddPropertyModal';
+import EditPropertyModal from './EditPropertyModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 const PropertyDashboard = () => {
   const [properties, setProperties] = useState([]);
@@ -11,6 +13,8 @@ const PropertyDashboard = () => {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showSimulationModal, setShowSimulationModal] = useState(false);
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
+  const [showEditPropertyModal, setShowEditPropertyModal] = useState(false);
+  const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
 
   // Load properties on component mount
   useEffect(() => {
@@ -50,6 +54,36 @@ const PropertyDashboard = () => {
   };
 
   const handlePropertyAdded = () => {
+    // Refresh the properties list
+    loadProperties();
+  };
+
+  const handleEditProperty = (property) => {
+    setSelectedProperty(property);
+    setShowEditPropertyModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditPropertyModal(false);
+    setSelectedProperty(null);
+  };
+
+  const handlePropertyUpdated = () => {
+    // Refresh the properties list
+    loadProperties();
+  };
+
+  const handleDeleteProperty = (property) => {
+    setSelectedProperty(property);
+    setShowDeleteConfirmationModal(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setShowDeleteConfirmationModal(false);
+    setSelectedProperty(null);
+  };
+
+  const handlePropertyDeleted = () => {
     // Refresh the properties list
     loadProperties();
   };
@@ -298,6 +332,8 @@ const PropertyDashboard = () => {
                   key={property.id}
                   property={property}
                   onRunSimulation={() => handleRunSimulation(property)}
+                  onEditProperty={() => handleEditProperty(property)}
+                  onDeleteProperty={() => handleDeleteProperty(property)}
                 />
               ))}
             </div>
@@ -318,6 +354,24 @@ const PropertyDashboard = () => {
         <AddPropertyModal
           onClose={handleCloseAddModal}
           onPropertyAdded={handlePropertyAdded}
+        />
+      )}
+
+      {/* Edit Property Modal */}
+      {showEditPropertyModal && selectedProperty && (
+        <EditPropertyModal
+          property={selectedProperty}
+          onClose={handleCloseEditModal}
+          onPropertyUpdated={handlePropertyUpdated}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmationModal && selectedProperty && (
+        <DeleteConfirmationModal
+          property={selectedProperty}
+          onClose={handleCloseDeleteModal}
+          onPropertyDeleted={handlePropertyDeleted}
         />
       )}
     </div>
