@@ -37,7 +37,10 @@ const PropertyCard = ({ property, onRunSimulation, onEditProperty, onDeletePrope
     borderRadius: '8px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     transition: 'all 0.2s ease',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%' // This ensures all cards take full height of their container
   };
 
   const headerStyle = {
@@ -46,7 +49,14 @@ const PropertyCard = ({ property, onRunSimulation, onEditProperty, onDeletePrope
   };
 
   const contentStyle = {
-    padding: '24px'
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    flex: '1' // This allows the content to grow and push buttons to bottom
+  };
+
+  const contentAreaStyle = {
+    flex: '1' // This pushes the button area to the bottom
   };
 
   const gridStyle = {
@@ -64,18 +74,6 @@ const PropertyCard = ({ property, onRunSimulation, onEditProperty, onDeletePrope
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease'
-  };
-
-  const primaryButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: '#3b82f6',
-    color: 'white'
-  };
-
-  const secondaryButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: '#e5e7eb',
-    color: '#374151'
   };
 
   return (
@@ -103,135 +101,160 @@ const PropertyCard = ({ property, onRunSimulation, onEditProperty, onDeletePrope
 
       {/* Content */}
       <div style={contentStyle}>
-        {/* Main Financial Info */}
-        <div style={gridStyle}>
-          <div>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Purchase Price</p>
-            <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
-              {formatCurrency(property.purchase_price)}
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Monthly Rent</p>
-            <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
-              {property.monthly_rent ? formatCurrency(property.monthly_rent) : 'N/A'}
-            </p>
-          </div>
-        </div>
-
-        <div style={gridStyle}>
-          <div>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Down Payment</p>
-            <p style={{ fontSize: '16px', fontWeight: '500', color: '#374151' }}>
-              {formatCurrency(property.down_payment)}
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Monthly Expenses</p>
-            <p style={{ fontSize: '16px', fontWeight: '500', color: '#374151' }}>
-              {formatCurrency(property.total_monthly_expenses)}
-            </p>
-          </div>
-        </div>
-
-        {/* Property Stats */}
-        {(property.bedrooms || property.bathrooms || property.square_feet) && (
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '14px', color: '#6b7280' }}>
-            {property.bedrooms && (
-              <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
-            )}
-            {property.bathrooms && (
-              <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
-            )}
-            {property.square_feet && (
-              <span>{property.square_feet.toLocaleString()} sq ft</span>
-            )}
-          </div>
-        )}
-
-        {/* Financial Metrics */}
-        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+        {/* Content Area - grows to fill available space */}
+        <div style={contentAreaStyle}>
+          {/* Main Financial Info */}
           <div style={gridStyle}>
             <div>
-              <p style={{ fontSize: '14px', color: '#6b7280' }}>Monthly Cash Flow</p>
-              <p style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: getCashFlowColor(property.monthly_cash_flow)
-              }}>
-                {formatCurrency(property.monthly_cash_flow)}
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Purchase Price</p>
+              <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+                {formatCurrency(property.purchase_price)}
               </p>
             </div>
             <div>
-              <p style={{ fontSize: '14px', color: '#6b7280' }}>Cash-on-Cash Return</p>
-              <p style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: getCashFlowColor(property.cash_on_cash_return)
-              }}>
-                {formatPercentage(property.cash_on_cash_return)}
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Monthly Rent</p>
+              <p style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+                {property.monthly_rent ? formatCurrency(property.monthly_rent) : 'N/A'}
               </p>
             </div>
           </div>
 
-          <div style={{ ...gridStyle, marginBottom: '24px' }}>
+          <div style={gridStyle}>
             <div>
-              <p style={{ fontSize: '14px', color: '#6b7280' }}>Cap Rate</p>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Down Payment</p>
               <p style={{ fontSize: '16px', fontWeight: '500', color: '#374151' }}>
-                {formatPercentage(property.cap_rate)}
+                {formatCurrency(property.down_payment)}
               </p>
             </div>
             <div>
-              <p style={{ fontSize: '14px', color: '#6b7280' }}>1% Rule</p>
-              <p style={{
-                fontSize: '16px',
-                fontWeight: '500',
-                color: property.one_percent_rule ? '#059669' : '#dc2626'
-              }}>
-                {property.one_percent_rule ? '✓ Passes' : '✗ Fails'}
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Monthly Expenses</p>
+              <p style={{ fontSize: '16px', fontWeight: '500', color: '#374151' }}>
+                {formatCurrency(property.total_monthly_expenses)}
               </p>
+            </div>
+          </div>
+
+          {/* Property Stats - Always reserve space for consistent height */}
+          <div style={{
+            minHeight: '20px', // Reserve minimum space even when empty
+            marginBottom: '16px',
+            fontSize: '14px',
+            color: '#6b7280'
+          }}>
+            {(property.bedrooms || property.bathrooms || property.square_feet) && (
+              <div style={{ display: 'flex', gap: '16px' }}>
+                {property.bedrooms && (
+                  <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                )}
+                {property.bathrooms && (
+                  <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                )}
+                {property.square_feet && (
+                  <span>{property.square_feet.toLocaleString()} sq ft</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Financial Metrics */}
+          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+            <div style={gridStyle}>
+              <div>
+                <p style={{ fontSize: '14px', color: '#6b7280' }}>Monthly Cash Flow</p>
+                <p style={{
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  color: getCashFlowColor(property.monthly_cash_flow)
+                }}>
+                  {formatCurrency(property.monthly_cash_flow)}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: '14px', color: '#6b7280' }}>Cash-on-Cash Return</p>
+                <p style={{
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  color: getCashFlowColor(property.cash_on_cash_return)
+                }}>
+                  {formatPercentage(property.cash_on_cash_return)}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ ...gridStyle, marginBottom: '0' }}>
+              <div>
+                <p style={{ fontSize: '14px', color: '#6b7280' }}>Cap Rate</p>
+                <p style={{ fontSize: '16px', fontWeight: '500', color: '#374151' }}>
+                  {formatPercentage(property.cap_rate)}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: '14px', color: '#6b7280' }}>1% Rule</p>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: property.one_percent_rule ? '#059669' : '#dc2626'
+                }}>
+                  {property.one_percent_rule ? '✓ Passes' : '✗ Fails'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        {/* Actions - Always at bottom */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          marginTop: '24px' // Add consistent spacing from content above
+        }}>
           <button
             onClick={() => onRunSimulation(property)}
-            style={primaryButtonStyle}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              fontSize: '14px',
+              padding: '10px 16px'
+            }}
             onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
             onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
           >
             Run Simulation
           </button>
-          <button
-            onClick={() => onEditProperty(property)}
-            style={{
-              ...buttonStyle,
-              backgroundColor: '#10b981',
-              color: 'white',
-              flex: '0 0 auto',
-              padding: '8px 12px'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => onDeleteProperty(property)}
-            style={{
-              ...buttonStyle,
-              backgroundColor: '#dc2626',
-              color: 'white',
-              flex: '0 0 auto',
-              padding: '8px 12px'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
-          >
-            Delete
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => onEditProperty(property)}
+              style={{
+                ...buttonStyle,
+                backgroundColor: '#10b981',
+                color: 'white',
+                flex: '1',
+                fontSize: '14px',
+                padding: '8px 12px'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => onDeleteProperty(property)}
+              style={{
+                ...buttonStyle,
+                backgroundColor: '#dc2626',
+                color: 'white',
+                flex: '1',
+                fontSize: '14px',
+                padding: '8px 12px'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,16 +1,89 @@
+# Core Flask and Web Framework
 flask~=3.1.1
-sqlalchemy
-reportlab~=4.4.2
-python-dotenv~=1.1.1
-pytest~=8.4.1
-pytest-cov
-#unittest-mock
-utils~=1.0.2
-Flask-Migrate~=4.1.0
+Werkzeug~=3.1.3
 flask-cors~=6.0.1
 Flask-Login~=0.6.3
-services~=0.1.1
-Werkzeug~=3.1.3
-factories~=1.4.1
+Flask-Migrate~=4.1.0
+
+# Database
+sqlalchemy
+Flask-SQLAlchemy~=3.1.1
+
+# Security and Authentication
+Flask-Limiter~=3.5.0
+Flask-WTF~=1.2.1
+zxcvbn~=4.4.28
+cryptography~=44.0.1
+
+# Configuration and Environment
+python-dotenv~=1.1.1
+python-decouple~=3.8
+
+# Email Support
+Flask-Mail~=0.9.1
+
+# Rate Limiting and Caching
+redis~=5.0.1
+
+# Data Processing and Analysis
 numpy~=2.1.2
+
+# Reporting and Export
+reportlab~=4.4.2
 exporters~=0.7.0
+
+# Utilities
+utils~=1.0.2
+services~=0.1.1
+factories~=1.4.1
+
+# Testing
+pytest~=8.4.1
+pytest-cov
+
+# Database Drivers (Production)
+psycopg2-binary~=2.9.9  # PostgreSQL
+
+# Monitoring and Logging (Production)
+python-json-logger~=2.0.7
+
+# Production WSGI Server (Windows Compatible)
+# Choose ONE of these options:
+
+# Option 1: Waitress (Windows-friendly, pure Python)
+waitress~=3.0.0
+
+# Option 2: uWSGI (Linux/Mac preferred, can work on Windows with tools)
+# uwsgi~=2.0.23
+
+# Option 3: Gunicorn (Linux/Mac only - comment out for Windows)
+# gunicorn~=21.2.0
+
+# Option 4: Gevent (problematic on Windows - REMOVED)
+# gevent~=23.9.1  # REMOVED due to Windows compilation issues
+
+# Windows-specific alternatives
+# For async support on Windows, consider:
+# asyncio-based solutions or threading
+
+# Development Tools (optional)
+#flask-shell-ipython~=1.4.0
+
+# Environment-specific packages
+# Uncomment based on your deployment needs:
+
+# AWS deployment
+# boto3~=1.34.0
+
+# Google Cloud deployment
+# google-cloud-storage~=2.10.0
+
+# Azure deployment
+# azure-storage-blob~=12.19.0
+
+# Background Tasks (Windows compatible)
+# celery~=5.3.0
+
+# Additional Security (optional)
+# flask-talisman~=1.1.0
+# flask-seasurf~=1.1.1
