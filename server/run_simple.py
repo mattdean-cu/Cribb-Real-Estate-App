@@ -642,6 +642,148 @@ def main():
         except Exception as e:
             return {'error': str(e)}, 500
 
+        # ===================
+        # PORTFOLIO ROUTES (Protected)
+        # ===================
+
+    @app.route('/api/portfolio/summary', methods=['GET', 'OPTIONS'])
+    @login_required
+    def get_portfolio_summary():
+        """Get portfolio summary statistics for the current user"""
+        if request.method == 'OPTIONS':
+            return '', 200
+
+        try:
+            from models.property import Property
+
+            # Get all user properties
+            properties = Property.query.filter_by(owner_id=current_user.id).all()
+
+            if not properties:
+                return jsonify({
+                    'total_properties': 0,
+                    'total_investment': 0,
+                    'total_value': 0,
+                    'total_equity': 0,
+                    'monthly_income': 0,
+                    'monthly_expenses': 0,
+                    'monthly_cash_flow': 0
+                }), 200
+
+            # Calculate summary statistics
+            total_properties = len(properties)
+            total_investment = sum(float(p.purchase_price) + float(p.closing_costs or 0) for p in properties)
+            total_value = sum(float(p.purchase_price) for p in properties)  # Using purchase price as current value
+            monthly_income = sum(float(p.monthly_rent or 0) for p in properties)
+            monthly_expenses = sum(float(p.total_monthly_expenses) for p in properties)
+            monthly_cash_flow = monthly_income - monthly_expenses
+
+            # Estimate total equity (simplified calculation)
+            total_equity = 0
+            for prop in properties:
+                down_payment = float(prop.down_payment or 0)
+                purchase_price = float(prop.purchase_price)
+                loan_amount = float(prop.loan_amount or 0)
+
+                # Simplified equity calculation (assumes some principal paydown)
+                estimated_remaining_debt = loan_amount * 0.85  # Rough estimate
+                equity = max(0, purchase_price - estimated_remaining_debt)
+                total_equity += equity
+
+            summary = {
+                'total_properties': total_properties,
+                'total_investment': total_investment,
+                'total_value': total_value,
+                'total_equity': total_equity,
+                'monthly_income': monthly_income,
+                'monthly_expenses': monthly_expenses,
+                'monthly_cash_flow': monthly_cash_flow,
+                'average_property_value': total_value / total_properties if total_properties > 0 else 0,
+                'portfolio_return': ((
+                                                 total_value - total_investment) / total_investment * 100) if total_investment > 0 else 0
+            }
+
+            return jsonify(summary), 200
+
+        except Exception as e:
+            print(f"Portfolio summary error: {str(e)}")
+            return jsonify({'error': 'Internal server error'}), 500
+
+    @app.route('/api/portfolio/simulate', methods=['POST', 'OPTIONS'])
+    @login_required
+    def simulate_portfolio():
+        """Run portfolio-wide simulation across multiple properties"""
+        if request.method == 'OPTIONS':
+            return '', 200
+
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            properties_data = data.get('properties', [])
+            simulation_params = data.get('simulation_params', {})
+
+            if not properties_data:
+                return jsonify({'error': 'No properties provided for simulation'}), 400
+
+            # Validate that all properties belong to the user
+            from models.property import Property
+            property_ids = [prop.get('id') for prop in properties_data]
+            user_properties = Property.query.filter(
+                Property.id.in_(property_ids),
+                Property.owner_id == current_user.id
+            ).all()
+
+            if len(user_properties) != len(property_ids):
+                return jsonify({'error': 'Some properties do not belong to user'}), 403
+
+            # Run portfolio simulation using the service
+            try:
+                from services.portfolio_simulation_service import PortfolioSimulationService
+                portfolio_service = PortfolioSimulationService()
+
+                # Convert SQLAlchemy objects to dictionaries
+                properties_for_simulation = []
+                for prop in user_properties:
+                    prop_dict = {
+                        'id': prop.id,
+                        'name': prop.name,
+                        'address': prop.address,
+                        'city': prop.city,
+                        'state': prop.state,
+                        'zip_code': prop.zip_code,
+                        'purchase_price': float(prop.purchase_price),
+                        'current_value': float(prop.purchase_price),  # Using purchase price as current value
+                        'down_payment': float(prop.down_payment or 0),
+                        'closing_costs': float(prop.closing_costs or 0),
+                        'monthly_rent': float(prop.monthly_rent or 0),
+                        'monthly_expenses': float(prop.total_monthly_expenses),
+                        'interest_rate': float(prop.interest_rate or 0.045),
+                        'loan_amount': float(prop.loan_amount or 0),
+                        'loan_term_years': prop.loan_term_years or 30
+                    }
+                    properties_for_simulation.append(prop_dict)
+
+                simulation_results = portfolio_service.simulate_portfolio(properties_for_simulation,
+                                                                          simulation_params)
+
+                if 'error' in simulation_results:
+                    return jsonify(simulation_results), 400
+
+                return jsonify(simulation_results), 200
+
+            except ImportError:
+                # Fallback if portfolio service isn't available
+                return jsonify({'error': 'Portfolio simulation service not available'}), 500
+
+        except Exception as e:
+            print(f"Portfolio simulation error: {str(e)}")
+            return jsonify({'error': 'Internal server error'}), 500
+
+
+
     print("\n🌐 Server starting at http://localhost:5000")
     print("🔐 Authentication endpoints:")
     print("   POST /api/auth/login")
@@ -652,6 +794,9 @@ def main():
     print("🏠 Property endpoints (protected):")
     print("   GET/POST/PUT/DELETE /api/properties")
     print("   POST /api/properties/<id>/simulate")
+    print("📊 Portfolio endpoints (protected):")
+    print("   GET /api/portfolio/summary")
+    print("   POST /api/portfolio/simulate")
     print("💡 Demo accounts:")
     print("   demo@cribb.com / Demo123!")
     print("   admin@cribb.com / Admin123!")

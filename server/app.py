@@ -243,6 +243,15 @@ def register_blueprints(app):
     except ImportError as e:
         app.logger.error(f"⚠️  Authentication routes not found: {e}")
 
+    # Register portfolio routes
+    try:
+        from routes.portfolio_routes import portfolio_bp
+        app.register_blueprint(portfolio_bp)
+        app.logger.info("✅ Portfolio routes registered")
+    except ImportError as e:
+        app.logger.error(f"⚠️  Portfolio routes not found: {e}")
+
+
     # Register property routes (with authentication)
     try:
         from routes.property_routes import property_bp

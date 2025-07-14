@@ -5,9 +5,11 @@ import SimulationModal from './SimulationModal';
 import AddPropertyModal from './AddPropertyModal';
 import EditPropertyModal from './EditPropertyModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import PortfolioSimulationModal from './PortfolioSimulationModal';
 
 const PropertyDashboard = ({ user, onLogout }) => {
   const [properties, setProperties] = useState([]);
+  const [portfolioSummary, setPortfolioSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -15,11 +17,14 @@ const PropertyDashboard = ({ user, onLogout }) => {
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false);
   const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
+  const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [activeView, setActiveView] = useState('properties'); // 'properties' or 'portfolio'
 
   // Load properties on component mount
   useEffect(() => {
     loadProperties();
+    loadPortfolioSummary();
   }, []);
 
   const loadProperties = async () => {
@@ -33,6 +38,20 @@ const PropertyDashboard = ({ user, onLogout }) => {
       console.error('Failed to load properties:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPortfolioSummary = async () => {
+    try {
+      const response = await fetch('/api/portfolio/summary', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPortfolioSummary(data);
+      }
+    } catch (error) {
+      console.error('Error fetching portfolio summary:', error);
     }
   };
 
@@ -66,8 +85,9 @@ const PropertyDashboard = ({ user, onLogout }) => {
   };
 
   const handlePropertyAdded = () => {
-    // Refresh the properties list
+    // Refresh the properties list and portfolio summary
     loadProperties();
+    loadPortfolioSummary();
   };
 
   const handleEditProperty = (property) => {
@@ -81,8 +101,9 @@ const PropertyDashboard = ({ user, onLogout }) => {
   };
 
   const handlePropertyUpdated = () => {
-    // Refresh the properties list
+    // Refresh the properties list and portfolio summary
     loadProperties();
+    loadPortfolioSummary();
   };
 
   const handleDeleteProperty = (property) => {
@@ -96,8 +117,17 @@ const PropertyDashboard = ({ user, onLogout }) => {
   };
 
   const handlePropertyDeleted = () => {
-    // Refresh the properties list
+    // Refresh the properties list and portfolio summary
     loadProperties();
+    loadPortfolioSummary();
+  };
+
+  const handlePortfolioAnalysis = () => {
+    setShowPortfolioModal(true);
+  };
+
+  const handleClosePortfolioModal = () => {
+    setShowPortfolioModal(false);
   };
 
   // Get user initials
@@ -118,6 +148,20 @@ const PropertyDashboard = ({ user, onLogout }) => {
     }
     if (user?.first_name) return user.first_name;
     return 'User';
+  };
+
+  // Format currency
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+  };
+
+  const formatPercentage = (value) => {
+    return `${(value || 0).toFixed(2)}%`;
   };
 
   const containerStyle = {
@@ -180,6 +224,34 @@ const PropertyDashboard = ({ user, onLogout }) => {
     gap: '12px'
   };
 
+  const viewToggleStyle = {
+    display: 'flex',
+    background: '#f5f5f5',
+    borderRadius: '8px',
+    padding: '4px',
+    gap: '4px',
+    marginTop: '16px'
+  };
+
+  const toggleButtonStyle = {
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s ease',
+    background: 'transparent',
+    color: '#666'
+  };
+
+  const activeToggleButtonStyle = {
+    ...toggleButtonStyle,
+    background: 'white',
+    color: '#2196F3',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  };
+
   const mainContentStyle = {
     maxWidth: '1400px',
     margin: '0 auto',
@@ -214,6 +286,22 @@ const PropertyDashboard = ({ user, onLogout }) => {
     background: '#e2e8f0',
     border: '1px solid #cbd5e0',
     color: '#4a5568'
+  };
+
+  const portfolioInsightsStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '24px',
+    marginBottom: '32px'
+  };
+
+  const insightCardStyle = {
+    backgroundColor: 'white',
+    padding: '24px',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    border: '2px solid #e5e7eb',
+    transition: 'all 0.3s ease'
   };
 
   if (loading) {
@@ -337,6 +425,17 @@ const PropertyDashboard = ({ user, onLogout }) => {
                   Add Property
                 </button>
                 <button
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: '#10b981',
+                    color: 'white'
+                  }}
+                  onClick={handlePortfolioAnalysis}
+                  disabled={properties.length === 0}
+                >
+                  📊 Portfolio Analysis
+                </button>
+                <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
                   style={{
@@ -362,95 +461,197 @@ const PropertyDashboard = ({ user, onLogout }) => {
               </div>
             </div>
           </div>
+
+          {/* View Toggle */}
+          <div style={viewToggleStyle}>
+            <button
+              style={activeView === 'properties' ? activeToggleButtonStyle : toggleButtonStyle}
+              onClick={() => setActiveView('properties')}
+            >
+              Properties
+            </button>
+            <button
+              style={activeView === 'portfolio' ? activeToggleButtonStyle : toggleButtonStyle}
+              onClick={() => setActiveView('portfolio')}
+            >
+              Portfolio Overview
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div style={mainContentStyle}>
-        {properties.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <div style={{ color: '#6b7280' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                No Properties Found
-              </h3>
-              <p>Start by adding your first investment property.</p>
+        {activeView === 'properties' && (
+          <>
+            {properties.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <div style={{ color: '#6b7280' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
+                    No Properties Found
+                  </h3>
+                  <p>Start by adding your first investment property.</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Statistics */}
+                <div style={statsGridStyle}>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
+                      Total Properties
+                    </h3>
+                    <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>
+                      {properties.length}
+                    </p>
+                  </div>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
+                      Total Value
+                    </h3>
+                    <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>
+                      ${properties.reduce((sum, p) => sum + p.purchase_price, 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
+                      Monthly Rent
+                    </h3>
+                    <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>
+                      ${properties.reduce((sum, p) => sum + (p.monthly_rent || 0), 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
+                      Monthly Cash Flow
+                    </h3>
+                    <p style={{
+                      fontSize: '24px',
+                      fontWeight: '700',
+                      color: '#059669'
+                    }}>
+                      ${properties.reduce((sum, p) => sum + p.monthly_cash_flow, 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Properties Grid */}
+                <div style={propertiesGridStyle}>
+                  {properties.map((property) => (
+                    <PropertyCard
+                      key={property.id}
+                      property={property}
+                      onRunSimulation={() => handleRunSimulation(property)}
+                      onEditProperty={() => handleEditProperty(property)}
+                      onDeleteProperty={() => handleDeleteProperty(property)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {activeView === 'portfolio' && (
+          <div style={{ minHeight: '400px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px', color: '#1f2937' }}>
+              Portfolio Insights
+            </h2>
+
+            {portfolioSummary && (
+              <div style={portfolioInsightsStyle}>
+                <div style={insightCardStyle}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#333' }}>
+                    Diversification
+                  </h3>
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: properties.length > 3 ? '#059669' : '#f59e0b',
+                    marginBottom: '8px'
+                  }}>
+                    {properties.length > 3 ? 'Well Diversified' : 'Consider Diversifying'}
+                  </div>
+                  <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5' }}>
+                    {properties.length > 3
+                      ? 'Your portfolio has good property count diversification.'
+                      : 'Consider adding more properties to reduce concentration risk.'
+                    }
+                  </p>
+                </div>
+
+                <div style={insightCardStyle}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#333' }}>
+                    Cash Flow Health
+                  </h3>
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: portfolioSummary.monthly_cash_flow >= 0 ? '#059669' : '#dc2626',
+                    marginBottom: '8px'
+                  }}>
+                    {portfolioSummary.monthly_cash_flow >= 0 ? 'Positive' : 'Negative'}
+                  </div>
+                  <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5' }}>
+                    Monthly cash flow: {formatCurrency(portfolioSummary.monthly_cash_flow)}
+                  </p>
+                </div>
+
+                <div style={insightCardStyle}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#333' }}>
+                    Investment Performance
+                  </h3>
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: portfolioSummary.portfolio_return >= 10 ? '#059669' : '#f59e0b',
+                    marginBottom: '8px'
+                  }}>
+                    {portfolioSummary.portfolio_return >= 10 ? 'Strong' : 'Moderate'}
+                  </div>
+                  <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5' }}>
+                    Portfolio return: {formatPercentage(portfolioSummary.portfolio_return)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <button
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  padding: '12px 24px',
+                  fontSize: '16px'
+                }}
+                onClick={handlePortfolioAnalysis}
+                disabled={properties.length === 0}
+              >
+                Run Full Portfolio Analysis
+              </button>
             </div>
           </div>
-        ) : (
-          <>
-            {/* Statistics */}
-            <div style={statsGridStyle}>
-              <div style={{
-                backgroundColor: 'white',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
-                  Total Properties
-                </h3>
-                <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>
-                  {properties.length}
-                </p>
-              </div>
-              <div style={{
-                backgroundColor: 'white',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
-                  Total Value
-                </h3>
-                <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>
-                  ${properties.reduce((sum, p) => sum + p.purchase_price, 0).toLocaleString()}
-                </p>
-              </div>
-              <div style={{
-                backgroundColor: 'white',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
-                  Monthly Rent
-                </h3>
-                <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>
-                  ${properties.reduce((sum, p) => sum + (p.monthly_rent || 0), 0).toLocaleString()}
-                </p>
-              </div>
-              <div style={{
-                backgroundColor: 'white',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280' }}>
-                  Monthly Cash Flow
-                </h3>
-                <p style={{
-                  fontSize: '24px',
-                  fontWeight: '700',
-                  color: '#059669'
-                }}>
-                  ${properties.reduce((sum, p) => sum + p.monthly_cash_flow, 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            {/* Properties Grid */}
-            <div style={propertiesGridStyle}>
-              {properties.map((property) => (
-                <PropertyCard
-                  key={property.id}
-                  property={property}
-                  onRunSimulation={() => handleRunSimulation(property)}
-                  onEditProperty={() => handleEditProperty(property)}
-                  onDeleteProperty={() => handleDeleteProperty(property)}
-                />
-              ))}
-            </div>
-          </>
         )}
       </div>
 
@@ -485,6 +686,18 @@ const PropertyDashboard = ({ user, onLogout }) => {
           property={selectedProperty}
           onClose={handleCloseDeleteModal}
           onPropertyDeleted={handlePropertyDeleted}
+        />
+      )}
+
+      {/* Portfolio Simulation Modal */}
+      {showPortfolioModal && (
+        <PortfolioSimulationModal
+          isOpen={showPortfolioModal}
+          onClose={handleClosePortfolioModal}
+          properties={properties}
+          onSimulate={(results) => {
+            console.log('Portfolio simulation completed:', results);
+          }}
         />
       )}
     </div>
